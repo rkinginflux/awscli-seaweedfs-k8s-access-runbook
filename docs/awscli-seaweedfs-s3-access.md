@@ -9,6 +9,16 @@ export AWS_PROFILE=local-s3
 aws --endpoint-url http://192.168.0.17:8333 s3 ls
 ```
 
+## Table of contents
+- Environment
+- Architecture
+- What was done
+- Troubleshooting matrix
+- Advanced troubleshooting (collapsible)
+- Validation checklist
+- Operational notes
+- Quick start
+
 ---
 
 ## Environment
@@ -21,8 +31,12 @@ aws --endpoint-url http://192.168.0.17:8333 s3 ls
 
 ---
 
-## Architecture diagram
+## Architecture
 
+### Visual (SVG)
+![Architecture](../assets/architecture.svg)
+
+### Mermaid source
 ```mermaid
 flowchart LR
     U[User Shell]
@@ -152,6 +166,48 @@ aws --endpoint-url http://192.168.0.17:8333 s3 cp /tmp/file.txt s3://lab/file.tx
 
 ---
 
+## Advanced troubleshooting (collapsible)
+
+<details>
+<summary>Credential source precedence quick check</summary>
+
+```bash
+aws configure list --profile local-s3
+env | grep '^AWS_' || true
+```
+
+Interpretation:
+- If `access_key` or `secret_key` show `TYPE=env`, env vars are overriding your profile.
+- Unset env vars and retry.
+
+</details>
+
+<details>
+<summary>Validate SeaweedFS IAM objects from filer shell</summary>
+
+```bash
+kubectl exec -n s3 seaweedfs-filer-0 -- sh -lc 'weed shell -master=seaweedfs-master-0.seaweedfs-master.s3:9333 <<"EOF"
+s3.user.list
+s3.accesskey.list -user admin
+s3.bucket.list
+EOF'
+```
+
+</details>
+
+<details>
+<summary>Validate LoadBalancer assignment and MetalLB state</summary>
+
+```bash
+kubectl get svc -n s3 seaweedfs-s3 -o wide
+kubectl get ipaddresspools.metallb.io -A
+kubectl get l2advertisements.metallb.io -A
+```
+
+</details>
+
+---
+
 ## Validation checklist
 - [ ] `aws --version` shows installed CLI
 - [ ] `kubectl get svc -n s3 seaweedfs-s3 -o wide` shows `LoadBalancer` with external IP
@@ -173,7 +229,7 @@ env | grep '^AWS_'
 
 ---
 
-## Quick start (copy/paste)
+## Quick start
 
 ```bash
 unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
